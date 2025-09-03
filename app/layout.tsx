@@ -19,15 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Here's the magic! We make the body a vertical flex container
-        that's at least as tall as the screen.
-      */}
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <Navbar />
 
-        {/* And here, we tell the main content area to "grow"
-          and take up all the available space, pushing the footer down.
-        */}
         <main className="flex-grow">{children}</main>
 
         <Footer />

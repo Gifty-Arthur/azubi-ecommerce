@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
-// 1. Import the specific icons you need from lucide-react
 import { Home, Store, ShoppingCart, Heart, LogIn, User } from "lucide-react";
+import AuthModals from "./AuthModals";
 
 const Navbar = () => {
   return (
@@ -66,18 +66,7 @@ const Navbar = () => {
 
         {/* login and register */}
         <div className="flex flex-row gap-4">
-          <Link href="/login">
-            <button className="text-black py-2 font-semibold text-sm  hover:text transition-colors">
-              <LogIn className="w-5 h-5 inline-block mr-2" />
-              Login
-            </button>
-          </Link>
-          <Link href="/login">
-            <button className="text-black font-semibold  text-sm py-2  hover:text transition-colors ">
-              <User className="w-5 h-5 inline-block mr-1 -mt-1" />
-              Register
-            </button>
-          </Link>
+          <AuthModals />
         </div>
       </div>
     </nav>

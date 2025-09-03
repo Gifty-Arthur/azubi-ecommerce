@@ -33,11 +33,81 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* You can add more page content below the hero section */}
-
       {/* Top trending product */}
       <div className="container mx-auto py-16 text-center">
-        <h2 className="text-3xl font-bold">More Content Here</h2>
+        <h2 className="text-[42px] font-semibold text-black">
+          Top Trending Products
+        </h2>
+        <p className="text-center mt-2 text-[14px]">
+          Discover the latest must-have items that are taking the market by
+          storm. Stay ahead with our curated collection
+          <br /> of trending products designed to elevate your lifestyle.
+        </p>
+        <div>{/* Product Grid */}</div>
+      </div>
+
+      {/* we are tackling */}
+      <div className=" mx-auto py-16 mt-30">
+        <div className="bg-[#01589A] p-8   h-[458px] ">
+          <h1 className="text-white text-[42px] container mt-4">
+            We're tackling the biggest challenges in laptops
+            <br /> and electronic products.text-white
+          </h1>
+          <div className="flex flex-row  items-center justify-between">
+            <div className="w-[423px] h-[161px] flex flex-col justify-center items-center mt-8">
+              <Image
+                src="/images/w1.png"
+                alt="we are tackling"
+                width={55}
+                height={55}
+                className="mt-8"
+              />
+              <h2 className="font-semibold text-white">
+                Fast and free shipping
+              </h2>
+              <p className="text-white text-center text-[14px] mt-2">
+                Every single order ships for free. No minimums, no tiers, no
+                fine print whatsoever.
+              </p>
+            </div>
+            {/* w2 */}
+            <div className="w-[423px] h-[161px] flex flex-col justify-center items-center mt-8">
+              <Image
+                src="/images/w2.png"
+                alt="we are tackling"
+                width={55}
+                height={55}
+                className="mt-8"
+              />
+              <h2 className="font-semibold text-white">
+                Fast and free shipping
+              </h2>
+              <p className="text-white text-center text-[14px] mt-2">
+                Our cutting-edge designs prioritize performance
+                <br />, portability, and seamless integration into your
+                lifestyle.
+              </p>
+            </div>
+
+            {/* w3 */}
+            <div className="w-[423px] h-[161px] flex flex-col justify-center items-center mt-8">
+              <Image
+                src="/images/w3.png"
+                alt="we are tackling"
+                width={55}
+                height={55}
+                className="mt-8"
+              />
+              <h2 className="font-semibold text-white">
+                Fast and free shipping
+              </h2>
+              <p className="text-white text-center text-[14px] mt-2">
+                We use premium aluminum, high-resolution OLED
+                <br /> displays, and durable batteries for superior quality.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
