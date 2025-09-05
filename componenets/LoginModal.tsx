@@ -10,16 +10,14 @@ interface RegisterModalProps {
 }
 
 const LoginModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
-  // If the modal is not open, don't render anything
   if (!isOpen) {
     return null;
   }
 
   return (
-    // Main container for the modal with a semi-transparent background
     <div
       onClick={onClose} // Close the modal if the background is clicked
-      className="fixed inset-0  bg-opacity-50 backdrop-blur-lg  z-50 flex items-center justify-center"
+      className="fixed inset-0  bg-opacity-50 backdrop-blur-sm  z-50 flex items-center justify-center"
     >
       {/* Modal content container */}
       <div
@@ -70,7 +68,7 @@ const LoginModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
           New customer?{" "}
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+            className="inline-flex items-center gap-1 text-[#01589A] hover:underline"
           >
             <span>Create your account</span>
             <ArrowUpRight className="w-4 h-4" />

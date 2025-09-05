@@ -1,25 +1,56 @@
 "use client";
 
-import { X } from "lucide-react";
-import React from "react";
-
-// The props this component will accept
+import React, { useState } from "react"; // NEW: Import useState
+import { ArrowUpRight, X } from "lucide-react";
+import { registerUser } from "@/lib/authApi";
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
+  // NEW: State to hold form data
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
   // If the modal is not open, don't render anything
   if (!isOpen) {
     return null;
   }
 
+  // NEW: Function to handle form submission
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    // Basic validation
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      const result = await registerUser({ name, email, password });
+      setSuccess("Registration successful! You can now log in.");
+      console.log("Success:", result);
+      // You could automatically close the modal here after a delay
+      // setTimeout(() => onClose(), 2000);
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+      console.error("Failure:", err);
+    }
+  };
+
   return (
     // Main container for the modal with a semi-transparent background
     <div
       onClick={onClose} // Close the modal if the background is clicked
-      className="fixed inset-0    z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
       {/* Modal content container */}
       <div
@@ -33,56 +64,75 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
         >
           <X size={24} />
         </button>
-
         {/* Modal Header */}
-        <h2 className="text-2xl font-bold text-center mb-6">
-          Create an Account
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-6">Register</h2>
 
         {/* Registration Form */}
-        <form className="space-y-4">
+        {/* NEW: Attach the handleSubmit function */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Full Name
-            </label>
+            {/* NEW: Connect input to state */}
             <input
               type="text"
-              placeholder="John Doe"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 block w-full px-3 h-[50px] bg-[#E6EFF5] py-2 border border-gray-300 rounded-sm shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
             <input
               type="email"
-              placeholder="you@example.com"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Email address *"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full px-3 h-[50px] bg-[#E6EFF5] py-2 border border-gray-300 rounded-sm shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
             <input
               type="password"
-              placeholder="••••••••"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full px-3 h-[50px] bg-[#E6EFF5] py-2 border border-gray-300 rounded-sm shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              required
             />
           </div>
+          <div>
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="mt-1 block w-full px-3 h-[50px] bg-[#E6EFF5] py-2 border border-gray-300 rounded-sm shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* NEW: Display success or error messages */}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {success && <p className="text-sm text-green-600">{success}</p>}
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full h-[45px] bg-[#01589A] text-white font-semibold py-2 px-4 rounded-sm hover:bg-blue-700 transition-colors"
           >
             Register
           </button>
         </form>
 
-        {/* Link to Login */}
-        <p className="text-center text-sm text-gray-600 mt-4">
+        <p className="text-sm text-center text-gray-600 mt-4">
           Already have an account?{" "}
-          <button className="text-blue-600 hover:underline">Log in</button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-[#01589A] hover:underline"
+          >
+            <span>Login here</span>
+            <ArrowUpRight className="w-4 h-4" />
+          </button>
         </p>
       </div>
     </div>
