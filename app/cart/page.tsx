@@ -3,10 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useCart } from "@/context/CartContext";
+import { useCart } from "../../context/CartContext"; // Corrected import path
+import { Trash2 } from "lucide-react";
 
 const CartPage = () => {
-  const { cartItems } = useCart();
+  const { cartItems, updateItemQuantity, removeFromCart } = useCart();
 
   const subtotal = cartItems.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -45,34 +46,78 @@ const CartPage = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items List */}
-            <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center bg-white p-4 border rounded-lg shadow-sm"
-                >
-                  <div className="relative h-24 w-24 rounded-md overflow-hidden">
-                    <Image
-                      src={item.image_url}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
-                  <div className="ml-4 flex-grow">
-                    <h2 className="font-semibold">{item.name}</h2>
-                    <p className="text-sm text-gray-500">
-                      Quantity: {item.quantity}
-                    </p>
-                  </div>
-                  <p className="font-semibold">
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </p>
-                </div>
-              ))}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* Cart Items Table */}
+            <div className="lg:col-span-2">
+              <table className="w-full text-left">
+                <thead className="border-b">
+                  <tr>
+                    <th className="font-semibold text-lg p-2">Product</th>
+                    <th className="font-semibold text-lg p-2 text-center">
+                      Price
+                    </th>
+                    <th className="font-semibold text-lg p-2 text-center">
+                      Quantity
+                    </th>
+                    <th className="font-semibold text-lg p-2 text-center">
+                      Total
+                    </th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cartItems.map((item) => (
+                    <tr key={item.id} className="border-b">
+                      <td className="p-2">
+                        <div className="flex items-center gap-4">
+                          <div className="relative h-24 w-24 rounded-md overflow-hidden">
+                            <Image
+                              src={item.image_url}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                          <span className="font-semibold">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="p-2 text-center">
+                        ${item.price.toFixed(2)}
+                      </td>
+                      <td className="p-2 text-center">
+                        <select
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateItemQuantity(
+                              item.id,
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-20 p-2 border rounded-md"
+                        >
+                          {[...Array(10).keys()].map((i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="p-2 font-semibold text-center">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-gray-500 hover:text-red-600"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Order Summary */}
@@ -90,7 +135,7 @@ const CartPage = () => {
                 <span>Total</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
-              <button className="mt-6 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="mt-6 w-full bg-[#01589A] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">
                 Proceed to Checkout
               </button>
             </div>
