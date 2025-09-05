@@ -1,69 +1,62 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import Image from "next/image";
 import ShopSidebar from "@/componenets/Shops/ShopSided";
+import { getAllProducts, Product } from "@/lib/productApi";
+import ProductCard from "@/componenets/cart/ProductCard";
 
-const brands = ["Apple", "Samsung", "Lenovo", "Sony"];
+// This is an async Server Component to fetch data
+const ShopPage = async () => {
+  // Fetch products directly from Supabase on the server
+  const products = await getAllProducts();
 
-const ShopPage = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedBrands, setSelectedBrands] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [isBrandsOpen, setIsBrands] = useState(true);
-
-  const handleCheckboxChange = (brandName: string) => {
-    setSelectedBrands((prev) => ({
-      ...prev,
-      [brandName]: !prev[brandName],
-    }));
-  };
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const isCategoriesOpen = () => {
-    setIsOpen(!isOpen);
-  };
   return (
-    <div className="">
+    <div className="bg-white">
+      {/* Header Section */}
       <div className="w-full h-[316px] bg-gradient-to-r from-[#01589A] to-[#009CDE]">
-        <div className="container mx-auto py-10 text-center">
-          <h1 className="text-[80px] font-bold text-white">New Arrival</h1>
-          <p className="mt-1 text-white">
+        <div className="container mx-auto py-10 text-center flex flex-col justify-center h-full">
+          <h1 className="text-5xl md:text-8xl font-bold text-white">
+            New Arrivals
+          </h1>
+          <p className="mt-2 text-white">
             Shop through our latest selection of Products
           </p>
         </div>
-        {/* home and shop */}
       </div>
-      <div className="">
-        <div className="flex flex-row gap-2 items-center justify-center mt-4">
-          <Link
-            href="/"
-            className="group relative flex items-center text-black  transition-colors"
-          >
-            <span className="text-sm font-semibold">Home</span>
 
-            <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+      {/* Breadcrumbs */}
+      <div className="container mx-auto">
+        <div className="flex flex-row gap-2 items-center justify-center my-4">
+          <Link href="/" className="text-sm font-semibold hover:underline">
+            Home
           </Link>
-
           <div className="h-4 w-px bg-black" />
-
-          <Link
-            href="/shop"
-            className="group relative text-black  transition-colors"
-          >
-            <span className="text-sm font-semibold">Shop</span>
-
-            <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
-          </Link>
-
-          {/* shop by */}
+          <span className="text-sm font-semibold text-gray-500">Shop</span>
         </div>
-        <ShopSidebar />
+      </div>
+
+      {/* Main Content Area with Sidebar and Product Grid */}
+      <div className="container mx-auto flex flex-col md:flex-row gap-8 py-8 px-4">
+        {/* Sidebar */}
+        <aside className="w-full md:w-1/4 lg:w-1/5">
+          <ShopSidebar />
+        </aside>
+
+        {/* Product Grid */}
+        <main className="w-full md:w-3/4 lg:w-4/5">
+          {products.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product: Product) => (
+                // 2. Use the interactive ProductCard for each product
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">
+              No products found. Please check your Supabase table for data.
+            </p>
+          )}
+        </main>
       </div>
     </div>
   );

@@ -32,9 +32,9 @@ const BrandFilter = () => {
       <button onClick={toggleDropdown} className="flex flex-row gap-5 ">
         <h2 className="text-black font-semibold">Brands</h2>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 " />
-        ) : (
           <ChevronDown className="w-5 h-5" />
+        ) : (
+          <ChevronUp className="w-5 h-5 " />
         )}
       </button>
 

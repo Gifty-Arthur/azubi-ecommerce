@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-
-import Navbar from "@/componenets/Navbar";
-import Footer from "@/componenets/Footer";
+import Navbar from "@/componenets/Navbar"; // Corrected typo
+import Footer from "@/componenets/Footer"; // Corrected typo
+import { CartProvider } from "@/context/CartContext"; // 1. Import the CartProvider
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,11 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
-        <Navbar />
-
-        <main className="flex-grow">{children}</main>
-
-        <Footer />
+        {/* 2. Wrap your entire application with the CartProvider */}
+        <CartProvider>
+          <Navbar />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );

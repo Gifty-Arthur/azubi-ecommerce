@@ -15,12 +15,14 @@ const ProductCategories = () => {
     <div className="w-full">
       {/* Clickable header */}
       <button onClick={toggleDropdown} className="flex  flex-row gap-5">
-        <h2 className="text-black font-semibold">Product Categories</h2>
+        <h2 className="text-black text-md font-semibold mt-4">
+          Product Categories
+        </h2>
 
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 mt-0.5" />
+          <ChevronDown className="w-5 h-5 mt-4" />
         ) : (
-          <ChevronDown className="w-5 h-5 mt-0.5" />
+          <ChevronUp className="w-5 h-5 mt-5" />
         )}
       </button>
 
