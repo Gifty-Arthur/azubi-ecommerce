@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'; // Import our new Supabase client
+import { supabase } from './supabaseClient';
 
 // Define the shape of a single product for TypeScript
 // This should match the columns in your Supabase table
@@ -9,6 +9,7 @@ export interface Product {
   description: string;
   price: number;
   image_url: string;
+  stock?: number; // Added stock as an optional field
 }
 
 /**
@@ -31,6 +32,28 @@ export async function getAllProducts(): Promise<Product[]> {
   } catch (error) {
     console.error("Error fetching products from Supabase:", error);
     return []; // Return an empty array on error
+  }
+}
+
+/**
+ * Fetches a single product by its ID.
+ */
+export async function getProductById(id: string): Promise<Product | null> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id) // Find the row where the 'id' column equals the provided id
+      .single();   // Expect only one result
+
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error(`Error fetching product with id ${id}:`, error);
+    return null;
   }
 }
 

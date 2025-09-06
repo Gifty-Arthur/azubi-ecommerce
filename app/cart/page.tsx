@@ -40,7 +40,7 @@ const CartPage = () => {
           <div className="text-center py-20">
             <p className="text-xl text-gray-600">Your cart is empty.</p>
             <Link href="/shop">
-              <button className="mt-6 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="mt-6 bg-[#01589A] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#D4EEF9] transition-colors">
                 Continue Shopping
               </button>
             </Link>

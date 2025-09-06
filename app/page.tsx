@@ -1,7 +1,14 @@
-import { Forward, ChevronRight } from "lucide-react";
+import { Forward, ChevronRight, ArrowUp } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import ProductCard from "@/componenets/cart/ProductCard";
+import { getAllProducts, Product } from "@/lib/productApi";
 
-export default function HomePage() {
+const HomePage = async () => {
+  const products = await getAllProducts();
+
+  const featuredProducts = products.slice(0, 4);
+
   return (
     <main>
       {/* Hero Section Container */}
@@ -26,10 +33,13 @@ export default function HomePage() {
               smartphones today.
             </p>
           </div>
-          <button className="mt-8 bg-white text-black font-semibold text-sm px-6 py-3  w-[150px] h-[47px] hover:bg-[#01589a] hover:text-white transition-colors flex items-center justify-center">
+          <Link
+            href="/shop"
+            className="mt-8 bg-white text-black font-semibold text-sm px-6 py-3  w-[150px] h-[47px] hover:bg-[#01589a] hover:text-white transition-colors flex items-center justify-center"
+          >
             Shop Now
             <ChevronRight className="inline-block mr-2 w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -43,7 +53,44 @@ export default function HomePage() {
           storm. Stay ahead with our curated collection
           <br /> of trending products designed to elevate your lifestyle.
         </p>
-        <div>{/* Product Grid */}</div>
+        <div>
+          {featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
+              {featuredProducts.map((product: Product) => (
+                <div
+                  key={product.id}
+                  className="bg-[#f9fbfc] rounded-lg p-6 flex flex-col items-center text-center shadow-md transition-shadow hover:shadow-xl"
+                >
+                  <div className="relative w-full h-48 mb-4">
+                    <Image
+                      src={product.image_url}
+                      alt={product.name}
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                  <h2 className="text-lg font-bold text-black  flex-grow">
+                    {product.name}
+                  </h2>
+                  <Link
+                    href="/shop"
+                    className="mt-4  text-black underline font-semibold px-5 py-2 rounded-lg hover:text-[#01589A] transition-colors"
+                  >
+                    <div className="flex">
+                      Show More
+                      {/* <ArrowUp size={18} className="mt-0.5" /> */}
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">
+              No products found. Please check your Supabase table for data.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* we are tackling */}
@@ -111,4 +158,5 @@ export default function HomePage() {
       </div>
     </main>
   );
-}
+};
+export default HomePage;

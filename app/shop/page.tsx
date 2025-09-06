@@ -5,9 +5,7 @@ import ShopSidebar from "@/componenets/Shops/ShopSided";
 import { getAllProducts, Product } from "@/lib/productApi";
 import ProductCard from "@/componenets/cart/ProductCard";
 
-// This is an async Server Component to fetch data
 const ShopPage = async () => {
-  // Fetch products directly from Supabase on the server
   const products = await getAllProducts();
 
   return (
@@ -47,7 +45,6 @@ const ShopPage = async () => {
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product: Product) => (
-                // 2. Use the interactive ProductCard for each product
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

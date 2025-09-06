@@ -1,77 +1,82 @@
 "use client";
 
-import React, { useState } from "react"; // NEW: Import useState
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, X } from "lucide-react";
-import { registerUser } from "@/lib/authApi";
+import { supabase } from "@/lib/supabaseClient"; // Corrected import path
+
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSwitchToLogin: () => void;
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
-  // NEW: State to hold form data
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null); // 1. Re-add success state
+  const router = useRouter();
 
-  // If the modal is not open, don't render anything
   if (!isOpen) {
     return null;
   }
 
-  // NEW: Function to handle form submission
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
+    setSuccess(null); // Reset success on new submission
 
-    // Basic validation
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    try {
-      const result = await registerUser({ name, email, password });
-      setSuccess("Registration successful! You can now log in.");
-      console.log("Success:", result);
-      // You could automatically close the modal here after a delay
-      // setTimeout(() => onClose(), 2000);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
-      console.error("Failure:", err);
+    const { error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      // 2. Set the success message
+      setSuccess("Registration successful! ");
+
+      // 3. Wait 2 seconds, then close the modal and redirect
+      setTimeout(() => {
+        onClose();
+        router.push("/login");
+      }, 2000); // 2000 milliseconds = 2 seconds
     }
   };
 
   return (
-    // Main container for the modal with a semi-transparent background
     <div
-      onClick={onClose} // Close the modal if the background is clicked
+      onClick={onClose}
       className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
-      {/* Modal content container */}
       <div
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside the modal from closing it
+        onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
       >
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
         >
           <X size={24} />
         </button>
-        {/* Modal Header */}
         <h2 className="text-2xl font-bold text-center mb-6">Register</h2>
 
-        {/* Registration Form */}
-        {/* NEW: Attach the handleSubmit function */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            {/* NEW: Connect input to state */}
             <input
               type="text"
               placeholder="Full Name"
@@ -112,7 +117,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
             />
           </div>
 
-          {/* NEW: Display success or error messages */}
+          {/* 4. Conditionally render the success message */}
           {error && <p className="text-sm text-red-600">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
 
