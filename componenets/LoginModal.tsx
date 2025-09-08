@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, X, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient"; // Corrected import path
 
 interface LoginModalProps {
@@ -19,8 +19,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null); // 1. Re-add success state
-
+  const [loading, setLoading] = useState(false); // State for loading indicator
   const router = useRouter();
 
   if (!isOpen) {
@@ -30,34 +29,31 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    setLoading(true); // Start loading
 
-    // Call the Supabase signIn function
     const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
 
+    setLoading(false); // Stop loading
+
     if (error) {
       setError(error.message);
     } else {
-      // 2. Set the success message
-      setSuccess("Registration successful! ");
-
-      setTimeout(() => {
-        onClose();
-        router.push("/");
-      }, 2000); // 2000 milliseconds = 2 seconds
+      onClose();
+      router.refresh();
     }
   };
 
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative animate-in fade-in-0 zoom-in-95"
       >
         <button
           onClick={onClose}
@@ -88,14 +84,23 @@ const LoginModal: React.FC<LoginModalProps> = ({
               required
             />
           </div>
+          <div className="text-right">
+            <button
+              type="button"
+              className="text-xs text-gray-600 hover:underline"
+            >
+              Forgot Password?
+            </button>
+          </div>
 
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
           <button
             type="submit"
-            className="w-full h-[45px] bg-[#01589A] text-white font-semibold py-2 px-4 rounded-sm hover:bg-blue-700 transition-colors"
+            disabled={loading} // Disable button when loading
+            className="w-full h-[45px] bg-[#01589A] text-white font-semibold py-2 px-4 rounded-sm hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50"
           >
-            Login
+            {loading ? <Loader2 className="animate-spin" /> : "Login"}
           </button>
         </form>
 
