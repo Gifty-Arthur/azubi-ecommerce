@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, X, Loader2 } from "lucide-react";
-import { supabase } from "../lib/supabaseClient"; // Corrected import path
+import { supabase } from "@/lib/supabaseClient"; // Corrected import path
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -42,6 +42,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
       setError(error.message);
     } else {
       onClose();
+      // This is the key step: it tells Next.js to refresh the page state,
+      // which makes the Navbar re-check if a user is logged in.
       router.refresh();
     }
   };

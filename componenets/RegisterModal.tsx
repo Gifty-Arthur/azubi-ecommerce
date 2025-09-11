@@ -1,24 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowUpRight, X } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient"; // Corrected import path
+import { supabase } from "../lib/supabaseClient"; // Corrected import path
 
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToLogin: () => void;
+  onSwitchToLogin: () => void; // This prop is key
 }
 
-const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
+const RegisterModal: React.FC<RegisterModalProps> = ({
+  isOpen,
+  onClose,
+  onSwitchToLogin,
+}) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null); // 1. Re-add success state
-  const router = useRouter();
+  const [success, setSuccess] = useState<string | null>(null);
 
   if (!isOpen) {
     return null;
@@ -27,7 +29,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null); // Reset success on new submission
+    setSuccess(null);
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -47,13 +49,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
     if (error) {
       setError(error.message);
     } else {
-      // 2. Set the success message
-      setSuccess("Registration successful! ");
+      // Set a success message
+      setSuccess("Registration successful! Please log in.");
 
-      // 3. Wait 2 seconds, then close the modal and redirect
+      // After 2 seconds, switch to the login modal
       setTimeout(() => {
-        onClose();
-        router.push("/login");
+        onSwitchToLogin();
       }, 2000); // 2000 milliseconds = 2 seconds
     }
   };
@@ -61,7 +62,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0  bg-opacity-50 backdrop-blur-sm  z-50 flex items-center justify-center p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -117,7 +118,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
             />
           </div>
 
-          {/* 4. Conditionally render the success message */}
           {error && <p className="text-sm text-red-600">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
 
@@ -132,6 +132,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
         <p className="text-sm text-center text-gray-600 mt-4">
           Already have an account?{" "}
           <button
+            onClick={onSwitchToLogin}
             type="button"
             className="inline-flex items-center gap-1 text-[#01589A] hover:underline"
           >
