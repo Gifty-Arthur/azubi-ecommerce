@@ -1,39 +1,79 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/componenets/Account/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
+import { PaystackButton } from "react-paystack";
+import { useRouter } from "next/navigation";
 
 const CheckoutPage = () => {
-  const { cartItems } = useCart();
+  const { cartItems, clearCart } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
 
-  // State for form inputs
-  const [email, setEmail] = useState(""); // Corrected this line
   const [shippingAddress, setShippingAddress] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvc, setCvc] = useState("");
+  const [error, setError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = cartItems.reduce(
     (total, item) => total + item.price * item.quantity,
     0
   );
 
-  // Handle form submission - for now, it will just log the data
-  const handlePlaceOrder = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Paystack configuration
+  const componentProps = {
+    email: user?.email || "",
+    amount: Math.round(subtotal * 100), // Amount in pesewas
+    currency: "GHS",
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
+    text: "Place Order",
+    onSuccess: (reference: any) => handlePaymentSuccess(reference),
+    onClose: () => setIsProcessing(false),
+  };
+
+  const handlePaymentSuccess = async (reference: { reference: string }) => {
+    setIsProcessing(true);
+    setError("");
+
+    if (!user) {
+      setError("You must be logged in to place an order.");
+      setIsProcessing(false);
+      return;
+    }
+
     const orderDetails = {
-      email,
+      userId: user.id,
       shippingAddress,
-      cardNumber,
-      expiryDate,
-      cvc,
       items: cartItems,
-      total: subtotal,
+      totalAmount: subtotal,
     };
-    console.log("Placing order:", orderDetails);
-    alert("Order placed successfully! (Check console for details)");
+
+    try {
+      const response = await fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: reference.reference, orderDetails }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert("Payment successful and order created!");
+        clearCart();
+        // This now redirects to the homepage
+        router.push(`/`);
+      } else {
+        setError(
+          result.error || "An error occurred while creating your order."
+        );
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -43,9 +83,7 @@ const CheckoutPage = () => {
 
         {cartItems.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-xl text-gray-600">
-              Your cart is empty. You can't proceed to checkout.
-            </p>
+            <p className="text-xl text-gray-600">Your cart is empty.</p>
             <Link href="/shop">
               <button className="mt-6 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
                 Return to Shop
@@ -53,32 +91,22 @@ const CheckoutPage = () => {
             </Link>
           </div>
         ) : (
-          <form
-            onSubmit={handlePlaceOrder}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-12"
-          >
-            {/* Left Side: Shipping & Payment Forms */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Left Side: Shipping Form */}
             <div className="bg-white p-8 rounded-lg shadow-md">
               <h2 className="text-2xl font-semibold mb-6">
-                Shipping & Payment
+                Shipping Information
               </h2>
-
-              {/* Shipping Information */}
               <div className="space-y-4">
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
-                  >
+                  <label className="block text-sm font-medium text-gray-700">
                     Email Address
                   </label>
                   <input
                     type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                    required
+                    value={user?.email || ""}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100"
+                    readOnly
                   />
                 </div>
                 <div>
@@ -96,65 +124,6 @@ const CheckoutPage = () => {
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                     required
                   ></textarea>
-                </div>
-              </div>
-
-              <div className="border-t my-8"></div>
-
-              {/* Payment Details */}
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="card-number"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    id="card-number"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    placeholder="0000 0000 0000 0000"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="expiry-date"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      id="expiry-date"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                      placeholder="MM / YY"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="cvc"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      CVC
-                    </label>
-                    <input
-                      type="text"
-                      id="cvc"
-                      value={cvc}
-                      onChange={(e) => setCvc(e.target.value)}
-                      placeholder="123"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                      required
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -186,7 +155,7 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                     <p className="font-semibold">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      GH₵{(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
                 ))}
@@ -197,7 +166,7 @@ const CheckoutPage = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>GH₵{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
@@ -205,18 +174,22 @@ const CheckoutPage = () => {
                 </div>
                 <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>GH₵{subtotal.toFixed(2)}</span>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="mt-8 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Place Order
-              </button>
+              {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+
+              {/* Paystack Button */}
+              <div className="mt-8">
+                <PaystackButton
+                  {...componentProps}
+                  className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  disabled={!shippingAddress || !user || isProcessing}
+                />
+              </div>
             </div>
-          </form>
+          </div>
         )}
       </div>
     </div>

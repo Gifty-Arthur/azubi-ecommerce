@@ -121,7 +121,7 @@ const CartPage = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="bg-gray-50 p-6 rounded-lg h-fit">
+            <div className="bg-gray-50 p-6 rounded-lg ">
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               <div className="flex justify-between mb-2">
                 <span>Subtotal</span>
@@ -135,11 +135,10 @@ const CartPage = () => {
                 <span>Total</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
-              <Link
-                href="/checkout"
-                className="mt-6 w-full bg-[#01589A] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Proceed to Checkout
+              <Link href="/checkout">
+                <button className="md:w-full mt-4 w-[664px] bg-[#01589A] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                  Proceed to Checkout
+                </button>
               </Link>
             </div>
           </div>
