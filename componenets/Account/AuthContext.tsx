@@ -7,8 +7,8 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { Session, User } from "@supabase/supabase-js";
 
 // Define the shape of the context value
 interface AuthContextType {
@@ -25,13 +25,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check for an initial session
+    // Check for an initial session when the app loads
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
     });
 
-    // Listen for changes in the authentication state (login, logout, etc.)
+    // Listen for any changes in auth state (login, logout, etc.)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
