@@ -1,25 +1,22 @@
 // app/page.tsx
 
-// 1. Import the necessary tools for creating a server client
-import { createClient } from "@supabase/supabase-js";
+// 1. Import the new server client helper we created
+import { createClient } from "@/lib/supabaseClient";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
-// 2. Correct the import path to match the file in your Canvas
+// 2. Import your product API function and type
 import { getAllProducts, Product } from "@/lib/productApi";
 
 const HomePage = async () => {
-  // 3. Create a Supabase client specifically for Server Components
+  // 3. Create a Supabase client for Server Components using our new helper
   const cookieStore = cookies();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    // No options needed for cookies here
-  );
+  const supabase = createClient(cookieStore);
 
-  // 4. CRITICAL FIX: Pass the 'supabase' client instance to your function
+  // 4. This line will now work because it calls the correct version of getAllProducts
+  //    and passes the valid server client to it.
   const products = await getAllProducts(supabase);
 
   // Your existing logic for featured products
@@ -30,20 +27,20 @@ const HomePage = async () => {
       {/* Hero Section Container */}
       <div className="relative h-[calc(100vh-88px)] w-full">
         <Image
-          src="/images/main.png" // The path starts from the 'public' folder
+          src="/images/hero.png" // The path starts from the 'public' folder
           alt="A vibrant display of products available at the store."
           fill
-          priority
+          priority // Added for LCP optimization
           className="object-cover"
         />
-        {/* Added a semi-transparent overlay for text readability */}
+
         <div className="relative z-10 flex h-full flex-col justify-center text-white container px-8 md:px-14">
           <div>
             <h1 className="text-5xl md:text-[80px] font-bold">
               Next-Gen <br />
               Mobility
             </h1>
-            <p className="text-[14px] font-bold mt-4">
+            <p className="text-[14px] font-bold mt-4 max-w-md">
               Power, performance, and style - experience the future of
               smartphones today.
             </p>
@@ -69,8 +66,6 @@ const HomePage = async () => {
           <br /> of trending products designed to elevate your lifestyle.
         </p>
         <div className="mt-12">
-          {" "}
-          {/* Added margin-top for spacing */}
           {featuredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product: Product) => (
@@ -80,7 +75,10 @@ const HomePage = async () => {
                 >
                   <div className="relative w-full h-48 mb-4">
                     <Image
-                      src={product.image_url || "/images/placeholder.png"} // Added a fallback image
+                      src={
+                        product.image_url ||
+                        "https://placehold.co/400x400/EFEFEF/AAAAAA?text=No+Image"
+                      }
                       alt={product.name}
                       fill
                       className="object-contain"
@@ -91,7 +89,7 @@ const HomePage = async () => {
                     {product.name}
                   </h2>
                   <Link
-                    href={`/product/${product.id}`} // Link to the specific product details page
+                    href={`/product/${product.id}`}
                     className="mt-4 text-black underline font-semibold px-5 py-2 rounded-lg hover:text-[#01589A] transition-colors"
                   >
                     <div className="flex">Show More</div>

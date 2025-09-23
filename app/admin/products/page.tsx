@@ -73,7 +73,7 @@ const AdminProductsPage = () => {
   return (
     <div className="p-4 md:p-6 lg:p-8">
       {/* Page Header */}
-      <div className="border-b border-gray-200 pb-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Products
@@ -82,12 +82,9 @@ const AdminProductsPage = () => {
             Manage your store's inventory.
           </p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
-        >
+        <Link href="/admin/products/new" className=" text-gray-600">
           <PlusCircle size={20} />
-          Add New Product
+          Create Product
         </Link>
       </div>
 
