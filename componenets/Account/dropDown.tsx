@@ -1,3 +1,4 @@
+// components/Account/dropDown.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -13,23 +14,32 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabaseClient";
+// 1. REMOVE the direct import of the old supabase client
+// import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+// 2. IMPORT the useAuth hook to get the correct supabase instance
+import { useAuth } from "./AuthContext";
 
 interface UserDropdownProps {
   user: User;
 }
 
 const UserDropdown: React.FC<UserDropdownProps> = ({ user }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  // 3. GET the stable supabase client instance from our corrected AuthContext
+  const { supabase } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Check if the user is an admin from their metadata
+  // This line is correct and derives isAdmin internally
   const isAdmin = user.user_metadata?.is_admin === true;
 
+  // 4. UPDATED LOGOUT FUNCTION for more reliability
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // Use router.push('/') to force a full page navigation. This is the most
+    // reliable way to reset the UI and component state after logging out.
+    router.push("/");
     router.refresh();
   };
 

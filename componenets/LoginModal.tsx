@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, X, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient"; // Corrected import path
+// 1. IMPORT the useAuth hook to get the correct supabase instance
+import { useAuth } from "./Account/AuthContext";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onSwitchToRegister,
 }) => {
+  // 2. GET the stable supabase client instance from our corrected AuthContext
+  const { supabase } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
     setError(null);
     setLoading(true); // Start loading
 
+    // Now 'supabase' is correctly defined and will work
     const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
@@ -51,7 +55,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm   z-50 flex items-center justify-center p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}

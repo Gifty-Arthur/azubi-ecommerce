@@ -1,8 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+// lib/supabase/client.ts
 
-// Get the Supabase URL and anon key from the .env.local file
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { createBrowserClient } from '@supabase/ssr'
+import { SupabaseClient } from '@supabase/supabase-js' // 1. Import the SupabaseClient type
 
-// Create the Supabase client, which we can use to interact with our database
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 2. Add the return type to the function signature
+export function createClient(cookieStore: unknown): SupabaseClient {
+  // Create a supabase client on the browser with project's credentials
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
+

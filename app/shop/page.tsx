@@ -1,12 +1,25 @@
+// app/shop/page.tsx
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ShopSidebar from "@/componenets/Shops/ShopSided";
-import { getAllProducts, Product } from "@/lib/productApi";
 import ProductCard from "@/componenets/cart/ProductCard";
 
+// 1. Import the necessary tools for creating a server client
+import { createClient } from "@/lib/supabaseClient";
+import { cookies } from "next/headers";
+
+// 2. Import your data-fetching function and type from the correct API file
+import { getAllProducts, Product } from "@/lib/productApi";
+
 const ShopPage = async () => {
-  const products = await getAllProducts();
+  // 3. Create a Supabase client specifically for Server Components
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+
+  // 4. CRITICAL FIX: Pass the 'supabase' client instance to your function
+  const products = await getAllProducts(supabase);
 
   return (
     <div className="bg-white">
