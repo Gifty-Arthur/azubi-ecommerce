@@ -1,36 +1,40 @@
 // app/admin/products/edit/[productId]/page.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+// Corrected import path typo: componenets -> components
+import { useAuth } from "@/componenets/Account/AuthContext";
+import { ArrowLeft, AlertCircle, Upload } from "lucide-react";
 
 const EditProductPage = () => {
   const router = useRouter();
-  const params = useParams(); // Hook to get dynamic route parameters from the URL
-  const productId = params.productId as string; // e.g., '123'
+  const params = useParams();
+  const productId = params.productId as string;
+  const { supabase } = useAuth();
 
   // State for form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [stock, setStock] = useState<number | "">("");
+  const [category, setCategory] = useState(""); // Placeholder for category
   const [imageUrl, setImageUrl] = useState("");
 
   // State for UI feedback
-  const [loading, setLoading] = useState(true); // True initially to fetch data
-  const [submitting, setSubmitting] = useState(false); // For form submission
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [originalName, setOriginalName] = useState("");
 
   // --- Data Fetching ---
-  // Fetch the existing product data when the component mounts
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId) {
-        setError("Product ID is missing from the URL.");
+        setError("Product ID is missing.");
         setLoading(false);
         return;
       }
@@ -39,38 +43,73 @@ const EditProductPage = () => {
       const { data, error: fetchError } = await supabase
         .from("products")
         .select("*")
-        .eq("id", productId) // Filter by the product ID from the URL
-        .single(); // Expect only one record
+        .eq("id", productId)
+        .single();
 
       if (fetchError) {
         console.error("Error fetching product:", fetchError);
-        setError(
-          `Product not found or failed to fetch. Please check the ID and RLS policies.`
-        );
+        setError(`Product not found or failed to fetch.`);
       } else if (data) {
-        // Populate the form fields with the fetched data
         setName(data.name);
+        setOriginalName(data.name); // Store original name for the title
         setDescription(data.description || "");
         setPrice(data.price);
         setStock(data.stock);
         setImageUrl(data.image_url || "");
+        // Note: You would fetch and set the category here if it's part of your product data
       }
       setLoading(false);
     };
 
-    fetchProduct();
-  }, [productId]);
+    if (supabase) {
+      fetchProduct();
+    }
+  }, [productId, supabase]);
 
-  // --- Form Submission ---
+  // --- Delete Logic (Corrected State Management) ---
+  const handleDelete = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${name}"? This action cannot be undone.`
+      )
+    ) {
+      setSubmitting(true);
+      const { error: deleteError } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productId);
+
+      if (deleteError) {
+        setError(`Failed to delete product: ${deleteError.message}`);
+        setSubmitting(false); // Stop submitting on error
+      } else {
+        alert("Product deleted successfully! Redirecting...");
+        // Invalidate the cache for the products page
+        router.refresh();
+        // Navigate back to the list
+        router.push("/admin/products");
+        // No need to set submitting to false here as we are navigating away.
+      }
+    }
+  };
+
+  // --- Form Submission (Corrected State Management) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
-    // Basic validation
-    if (!name || price === "" || stock === "") {
-      setError("Name, Price, and Stock are required fields.");
+    const numericPrice = parseFloat(String(price));
+    const numericStock = parseInt(String(stock), 10);
+
+    if (isNaN(numericPrice) || numericPrice < 0) {
+      setError("Price must be a valid, positive number.");
+      setSubmitting(false);
+      return;
+    }
+    if (isNaN(numericStock) || numericStock < 0) {
+      setError("Stock must be a valid, positive whole number.");
       setSubmitting(false);
       return;
     }
@@ -80,25 +119,28 @@ const EditProductPage = () => {
       .update({
         name,
         description,
-        price,
-        stock,
+        price: numericPrice,
+        stock: numericStock,
         image_url: imageUrl || null,
-        updated_at: new Date().toISOString(), // Recommended to have an 'updated_at' column
+        updated_at: new Date().toISOString(),
       })
-      .eq("id", productId); // CRITICAL: Only update the product with this specific ID
+      .eq("id", productId);
 
     if (updateError) {
-      console.error("Error updating product:", updateError);
       setError(`Failed to update product: ${updateError.message}`);
+      setSubmitting(false); // Stop submitting on error
     } else {
-      setSuccess("Product updated successfully!");
-      // Wait a moment to show the success message before redirecting
+      setSuccess("Product updated successfully! Redirecting...");
+
+      // Invalidate the cache for the products page.
+      router.refresh();
+
+      // Navigate back to the product list after a short delay
       setTimeout(() => {
         router.push("/admin/products");
-        router.refresh(); // Invalidate the cache for the product list page to show new data
       }, 1500);
+      // We don't set submitting to false here because we are navigating away.
     }
-    setSubmitting(false);
   };
 
   if (loading) {
@@ -107,8 +149,7 @@ const EditProductPage = () => {
     );
   }
 
-  // If there was an error and we couldn't load the product name
-  if (error && !name) {
+  if (error && !originalName) {
     return (
       <div className="p-6 text-center">
         <div className="text-red-600 flex flex-col items-center gap-2 mb-4">
@@ -123,142 +164,137 @@ const EditProductPage = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href="/admin/products"
-          className="text-gray-600 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100"
-        >
-          <ArrowLeft size={24} />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Edit Product
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Update the details for:{" "}
-            <span className="font-medium text-gray-700">{name}</span>
-          </p>
+    <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <Link
+            href="/admin/products"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </Link>
         </div>
-      </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md ring-1 ring-black ring-opacity-5">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Form fields */}
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Product Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-            ></textarea>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label
-                htmlFor="price"
-                className="block text-sm font-medium text-gray-700"
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <div className="flex justify-between items-center border-b pb-4 mb-8">
+            <div className="flex items-center gap-8">
+              <Link
+                href="/admin/products"
+                className="text-xl font-bold text-gray-500 hover:text-blue-600 transition-colors"
               >
-                Price ($)
+                Products
+              </Link>
+              <h1 className="text-xl font-bold text-blue-600 border-b-2 border-blue-600 pb-1">
+                Update Product
+              </h1>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative w-48 h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    alt={name}
+                    fill
+                    className="object-contain p-2 rounded-lg"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-gray-400 text-sm">No Image</span>
+                )}
+              </div>
+              <label className="cursor-pointer bg-blue-500 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">
+                <span>Choose file</span>
+                <input type="file" className="hidden" />
               </label>
+              <p className="text-xs text-gray-500">
+                Note: File upload is for display only. Please paste URL below.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <input
+                type="text"
+                placeholder="Apple MacBook Pro 2019 | 16”"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+              />
               <input
                 type="number"
-                id="price"
+                placeholder="$749.99"
                 value={price}
                 onChange={(e) =>
                   setPrice(
                     e.target.value === "" ? "" : parseFloat(e.target.value)
                   )
                 }
-                min="0"
-                step="0.01"
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+                className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
               />
-            </div>
-            <div>
-              <label
-                htmlFor="stock"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Stock Quantity
-              </label>
               <input
                 type="number"
-                id="stock"
+                placeholder="20 (Stock)"
                 value={stock}
                 onChange={(e) =>
                   setStock(
-                    e.target.value === "" ? "" : parseInt(e.target.value, 10)
+                    e.target.value === "" ? "" : parseInt(e.target.value)
                   )
                 }
-                min="0"
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+                className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+              />
+              <input
+                type="text"
+                placeholder="Apple (Category)"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+              />
+              <input
+                type="url"
+                placeholder="Image URL"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md md:col-span-2"
               />
             </div>
-          </div>
-          <div>
-            <label
-              htmlFor="imageUrl"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Image URL
-            </label>
-            <input
-              type="url"
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="https://example.com/product-image.jpg"
-            />
-          </div>
 
-          {/* Feedback Messages */}
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          {success && <p className="text-green-600 text-sm">{success}</p>}
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="RAM 16.0 GB | Memory 512 GB Keyboard layout Eng (English)"
+              rows={4}
+              className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+            ></textarea>
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-4 pt-4">
-            <Link
-              href="/admin/products"
-              className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md font-semibold hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
-              disabled={submitting}
-            >
-              {submitting ? "Saving Changes..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
+            {success && (
+              <p className="text-green-600 text-sm text-center">{success}</p>
+            )}
+
+            <div className="flex justify-end items-center gap-4 pt-4 border-t">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {submitting ? "Updating..." : "Update"}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={submitting}
+                className="bg-red-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
