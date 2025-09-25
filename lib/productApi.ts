@@ -1,84 +1,107 @@
-// lib/supabase/products.ts
-
 import { SupabaseClient } from '@supabase/supabase-js';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-// Define the shape of a single product for TypeScript.
-// This should match the columns in your Supabase 'products' table.
+// --- INTERFACE DEFINITION ---
+
+// This shape should match the columns in your Supabase 'products' table.
 export interface Product {
-  id: string;
-  created_at: string;
-  name: string;
-  description: string;
-  price: number;
-  image_url: string;
-  stock?: number;
+  id: string;
+  created_at: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  stock?: number;
+  user_id?: string; 
+  updated_at?: string; // For the update function
 }
 
-// Define the type for the data needed to create a new product.
-// It's the same as Product but without the fields that the database auto-generates (id, created_at).
-type NewProductData = Omit<Product, 'id' | 'created_at'>;
-
-// Define the type for the data needed to update an existing product.
-// All fields are optional, as you might only want to update one or two.
-type UpdateProductData = Partial<NewProductData>;
+// Types for creating and updating products
+type NewProductData = Omit<Product, 'id' | 'created_at' | 'updated_at'> & { user_id: string };
+type UpdateProductData = Partial<Omit<Product, 'id' | 'created_at' | 'user_id'>>;
 
 
-// --- READ Functions ---
+// ================================================================= //
+//    SERVER-SIDE FUNCTIONS (for Server Components, e.g., user product page)
+// ================================================================= //
 
 /**
- * Fetches all products from the Supabase 'products' table.
- * @param supabase - An active Supabase client instance.
- */
+ * Fetches a single product by its ID from the SERVER side.
+ * This is safe to use in Server Components as it creates its own client.
+ * @param id - The unique identifier of the product to fetch.
+ */
+export async function getProductById(id: string): Promise<Product | null> {
+  const cookieStore = cookies();
+  
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        async get(name: string) {
+          // The cookieStore is awaited to resolve the promise before accessing its methods.
+          return (await cookieStore).get(name)?.value;
+        },
+      },
+    }
+  );
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error(`Server Error fetching product with id ${id}:`, error.message);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    console.error(`Unexpected server error in getProductById for id ${id}:`, errorMessage);
+    return null;
+  }
+}
+
+
+// ================================================================= //
+//    CLIENT-SIDE FUNCTIONS (for Client Components, e.g., admin pages)
+// ================================================================= //
+
+/**
+ * Fetches all products from the 'products' table.
+ * @param supabase - An active Supabase client instance from a hook or client helper.
+ */
 export async function getAllProducts(supabase: SupabaseClient): Promise<Product[]> {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || []; 
-  } catch (error) {
-    console.error("Error fetching all products:", error);
-    return [];
-  }
+    if (error) throw error;
+    return data || []; 
+  } catch (error) {
+    console.error("Error fetching all products:", error);
+    return [];
+  }
 }
-
-/**
- * Fetches a single product by its ID.
- * @param supabase - An active Supabase client instance.
- * @param id - The unique identifier of the product to fetch.
- */
-export async function getProductById(supabase: SupabaseClient, id: string): Promise<Product | null> {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error(`Error fetching product with id ${id}:`, error);
-    return null;
-  }
-}
-
-
-// --- CREATE Function ---
 
 /**
  * Creates a new product in the 'products' table.
  * @param supabase - An active Supabase client instance.
- * @param productData - An object containing the new product's details.
+ * @param productData - Object with new product details, including user_id.
  */
 export async function createProduct(supabase: SupabaseClient, productData: NewProductData): Promise<Product | null> {
     try {
         const { data, error } = await supabase
             .from('products')
             .insert(productData)
-            .select() // Use .select() to return the newly created record
+            .select()
             .single();
 
         if (error) throw error;
@@ -88,9 +111,6 @@ export async function createProduct(supabase: SupabaseClient, productData: NewPr
         return null;
     }
 }
-
-
-// --- UPDATE Function ---
 
 /**
  * Updates an existing product in the 'products' table.
@@ -102,7 +122,7 @@ export async function updateProduct(supabase: SupabaseClient, id: string, update
     try {
         const { data, error } = await supabase
             .from('products')
-            .update({ ...updates, updated_at: new Date().toISOString() }) // Recommended to have an 'updated_at' column
+            .update({ ...updates, updated_at: new Date().toISOString() })
             .eq('id', id)
             .select()
             .single();
@@ -115,14 +135,10 @@ export async function updateProduct(supabase: SupabaseClient, id: string, update
     }
 }
 
-
-// --- DELETE Function ---
-
 /**
  * Deletes a product from the 'products' table.
  * @param supabase - An active Supabase client instance.
  * @param id - The ID of the product to delete.
- * @returns True if deletion was successful, false otherwise.
  */
 export async function deleteProduct(supabase: SupabaseClient, id: string): Promise<boolean> {
     try {

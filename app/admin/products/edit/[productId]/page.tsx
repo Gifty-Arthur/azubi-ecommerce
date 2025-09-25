@@ -1,17 +1,20 @@
 // app/admin/products/edit/[productId]/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-// Corrected import path typo: componenets -> components
 import { useAuth } from "@/componenets/Account/AuthContext";
-import { ArrowLeft, AlertCircle, Upload } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+import {
+  updateProductAction,
+  deleteProductAction,
+} from "@/app/admin/products/actions";
 
 const EditProductPage = () => {
-  const router = useRouter();
   const params = useParams();
+  const router = useRouter();
   const productId = params.productId as string;
   const { supabase } = useAuth();
 
@@ -20,17 +23,18 @@ const EditProductPage = () => {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [stock, setStock] = useState<number | "">("");
-  const [category, setCategory] = useState(""); // Placeholder for category
+  const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
   // State for UI feedback
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [originalName, setOriginalName] = useState("");
 
-  // --- Data Fetching ---
+  const [isPending, startTransition] = useTransition();
+
+  // Data fetching logic remains the same
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId) {
@@ -38,7 +42,6 @@ const EditProductPage = () => {
         setLoading(false);
         return;
       }
-
       setLoading(true);
       const { data, error: fetchError } = await supabase
         .from("products")
@@ -47,100 +50,62 @@ const EditProductPage = () => {
         .single();
 
       if (fetchError) {
-        console.error("Error fetching product:", fetchError);
         setError(`Product not found or failed to fetch.`);
       } else if (data) {
         setName(data.name);
-        setOriginalName(data.name); // Store original name for the title
+        setOriginalName(data.name);
         setDescription(data.description || "");
         setPrice(data.price);
         setStock(data.stock);
         setImageUrl(data.image_url || "");
-        // Note: You would fetch and set the category here if it's part of your product data
       }
       setLoading(false);
     };
-
-    if (supabase) {
-      fetchProduct();
-    }
+    if (supabase) fetchProduct();
   }, [productId, supabase]);
 
-  // --- Delete Logic (Corrected State Management) ---
+  // --- UPDATED Delete Logic ---
   const handleDelete = async () => {
     if (
       window.confirm(
         `Are you sure you want to delete "${name}"? This action cannot be undone.`
       )
     ) {
-      setSubmitting(true);
-      const { error: deleteError } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", productId);
-
-      if (deleteError) {
-        setError(`Failed to delete product: ${deleteError.message}`);
-        setSubmitting(false); // Stop submitting on error
-      } else {
-        alert("Product deleted successfully! Redirecting...");
-        // Invalidate the cache for the products page
-        router.refresh();
-        // Navigate back to the list
-        router.push("/admin/products");
-        // No need to set submitting to false here as we are navigating away.
-      }
+      startTransition(async () => {
+        const result = await deleteProductAction(productId);
+        if (result?.error) {
+          setError(result.error);
+        } else {
+          // On success, the client handles the navigation.
+          alert("Product deleted successfully!");
+          router.push("/admin/products");
+        }
+      });
     }
   };
 
-  // --- Form Submission (Corrected State Management) ---
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+  // --- UPDATED Form Submission (Client-side handler) ---
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Prevent default form submission
     setError(null);
     setSuccess(null);
 
-    const numericPrice = parseFloat(String(price));
-    const numericStock = parseInt(String(stock), 10);
+    const formData = new FormData(event.currentTarget); // Get form data
 
-    if (isNaN(numericPrice) || numericPrice < 0) {
-      setError("Price must be a valid, positive number.");
-      setSubmitting(false);
-      return;
-    }
-    if (isNaN(numericStock) || numericStock < 0) {
-      setError("Stock must be a valid, positive whole number.");
-      setSubmitting(false);
-      return;
-    }
-
-    const { error: updateError } = await supabase
-      .from("products")
-      .update({
-        name,
-        description,
-        price: numericPrice,
-        stock: numericStock,
-        image_url: imageUrl || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", productId);
-
-    if (updateError) {
-      setError(`Failed to update product: ${updateError.message}`);
-      setSubmitting(false); // Stop submitting on error
-    } else {
-      setSuccess("Product updated successfully! Redirecting...");
-
-      // Invalidate the cache for the products page.
-      router.refresh();
-
-      // Navigate back to the product list after a short delay
-      setTimeout(() => {
-        router.push("/admin/products");
-      }, 1500);
-      // We don't set submitting to false here because we are navigating away.
-    }
+    startTransition(async () => {
+      const result = await updateProductAction(productId, formData);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setSuccess(
+          result.success || "Product updated successfully! Redirecting..."
+        );
+        // On success, client navigates after a short delay for user to see the message.
+        setTimeout(() => {
+          router.push("/admin/products");
+        }, 1500);
+      }
+    });
   };
 
   if (loading) {
@@ -175,7 +140,6 @@ const EditProductPage = () => {
             Back
           </Link>
         </div>
-
         <div className="bg-white p-8 rounded-lg shadow-md">
           <div className="flex justify-between items-center border-b pb-4 mb-8">
             <div className="flex items-center gap-8">
@@ -190,7 +154,7 @@ const EditProductPage = () => {
               </h1>
             </div>
           </div>
-
+          {/* The form now calls our client-side handleSubmit function */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-48 h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
@@ -216,14 +180,18 @@ const EditProductPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Inputs must have a 'name' attribute for FormData */}
               <input
+                name="name"
                 type="text"
                 placeholder="Apple MacBook Pro 2019 | 16”"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+                required
               />
               <input
+                name="price"
                 type="number"
                 placeholder="$749.99"
                 value={price}
@@ -233,8 +201,11 @@ const EditProductPage = () => {
                   )
                 }
                 className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+                step="0.01"
+                required
               />
               <input
+                name="stock"
                 type="number"
                 placeholder="20 (Stock)"
                 value={stock}
@@ -244,8 +215,10 @@ const EditProductPage = () => {
                   )
                 }
                 className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
+                required
               />
               <input
+                name="category"
                 type="text"
                 placeholder="Apple (Category)"
                 value={category}
@@ -253,6 +226,7 @@ const EditProductPage = () => {
                 className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
               />
               <input
+                name="imageUrl"
                 type="url"
                 placeholder="Image URL"
                 value={imageUrl}
@@ -262,6 +236,7 @@ const EditProductPage = () => {
             </div>
 
             <textarea
+              name="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="RAM 16.0 GB | Memory 512 GB Keyboard layout Eng (English)"
@@ -269,6 +244,7 @@ const EditProductPage = () => {
               className="w-full p-3 bg-gray-100 border border-gray-200 rounded-md"
             ></textarea>
 
+            {/* These error/success states will now display feedback from the server action */}
             {error && (
               <p className="text-red-600 text-sm text-center">{error}</p>
             )}
@@ -279,18 +255,18 @@ const EditProductPage = () => {
             <div className="flex justify-end items-center gap-4 pt-4 border-t">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={isPending}
                 className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {submitting ? "Updating..." : "Update"}
+                {isPending ? "Updating..." : "Update"}
               </button>
               <button
                 type="button"
                 onClick={handleDelete}
-                disabled={submitting}
+                disabled={isPending}
                 className="bg-red-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
               >
-                Delete
+                {isPending ? "Deleting..." : "Delete"}
               </button>
             </div>
           </form>

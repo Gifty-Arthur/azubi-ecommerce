@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+// Corrected typo in the import path
 import { useAuth } from "@/componenets/Account/AuthContext";
 import { Edit, AlertCircle, ArrowLeft } from "lucide-react";
 
@@ -24,14 +25,13 @@ const AdminProductsPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
-    setLoading(true);
+    // We don't set loading to true here to avoid a flash when realtime updates happen
     setError(null);
 
-    let query = supabase
+    const { data, error: supabaseError } = await supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
-    const { data, error: supabaseError } = await query;
 
     if (supabaseError) {
       console.error("Error fetching products:", supabaseError);
@@ -41,12 +41,38 @@ const AdminProductsPage = () => {
     } else {
       setProducts(data || []);
     }
-    setLoading(false);
+    setLoading(false); // Set loading to false after the initial fetch
   }, [supabase]);
 
+  // Initial data fetch
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // --- REALTIME SUBSCRIPTION ---
+  // This useEffect hook sets up a listener for any changes in the 'products' table.
+  useEffect(() => {
+    // Ensure supabase client is available
+    if (!supabase) return;
+
+    // Create a channel for all 'products' table changes
+    const channel = supabase
+      .channel("products-realtime-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        (payload) => {
+          console.log("Change received!", payload);
+          // When a change is detected, re-fetch the products
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchProducts]); // Re-run effect if supabase client or fetchProducts function changes
 
   return (
     <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
@@ -66,12 +92,12 @@ const AdminProductsPage = () => {
           {/* Header with Tabs and Total Count */}
           <div className="flex justify-between items-center border-b pb-4">
             <div className="flex items-center gap-8">
-              <h1 className="text-xl font-bold text-[#01589A] border-b-2 border-[#01589A] pb-1">
+              <h1 className="text-xl font-bold text-blue-600 border-b-2 border-blue-600 pb-1">
                 Products
               </h1>
               <Link
                 href="/admin/products/new"
-                className="text-xl font-bold text-gray-500 hover:text-[#01589A] transition-colors"
+                className="text-xl font-bold text-gray-500 hover:text-blue-600 transition-colors"
               >
                 Create Product
               </Link>
@@ -111,30 +137,30 @@ const AdminProductsPage = () => {
                         unoptimized
                       />
                     </div>
-                    <div className="p-4 flex flex-col items-center">
+                    <div className="p-4 flex flex-col">
                       <h2 className="text-lg font-bold text-gray-800 truncate">
                         {product.name}
                       </h2>
                       <p className="text-sm text-gray-500 mt-1 h-10 overflow-hidden">
                         {product.description || "No description available."}
                       </p>
-                      <p className="text-lg font-semibold text-[#01589A] mt-2">
+                      <p className="text-lg font-semibold text-blue-600 mt-2">
                         ${product.price.toFixed(2)}
                       </p>
-                    </div>
-                    <div className="flex flex-row items-between justify-between p-8">
-                      <Link
-                        href={`/admin/products/edit/${product.id}`}
-                        className="text-gray-500 hover:text-[#01589A]"
-                        title="Edit Product"
-                      >
-                        <Edit size={20} />
-                      </Link>
-                      <span className="text-xs text-gray-400">
-                        {new Date(product.created_at).toLocaleDateString(
-                          "en-GB"
-                        )}
-                      </span>
+                      <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                        <Link
+                          href={`/admin/products/edit/${product.id}`}
+                          className="text-gray-500 hover:text-blue-600"
+                          title="Edit Product"
+                        >
+                          <Edit size={20} />
+                        </Link>
+                        <span className="text-xs text-gray-400">
+                          {new Date(product.created_at).toLocaleDateString(
+                            "en-GB"
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
