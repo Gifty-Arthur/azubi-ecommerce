@@ -21,9 +21,7 @@ const Navbar = () => {
   // Pull user and loading status from the authentication context.
   const { user, loading } = useAuth();
 
-  // --- Loading State ---
-  // Shows a skeleton UI while the user's session is being checked.
-  // This prevents the UI from flickering between login/logout states.
+
   if (loading) {
     return (
       <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -77,12 +75,7 @@ const Navbar = () => {
 
         {/* --- Authentication Section --- */}
         <div>
-          {/*
-           * This is the corrected logic.
-           * It passes ONLY the 'user' object. The UserDropdown component
-           * is responsible for checking user.user_metadata to see if the
-           * user is an admin.
-           */}
+      
           {user ? <UserDropdown user={user} /> : <AuthModals />}
         </div>
       </div>

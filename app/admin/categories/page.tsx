@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 // Removed unused router import
-import { createClient } from "@supabase/supabase-js"; // Adjust this path to your Supabase client
+import { createClient } from "@/lib/supabaseClient";
 import {
   getAllCategories,
   createCategory,
@@ -28,10 +28,7 @@ const XCircleIcon = () => (
 );
 
 export default function CategoryAdminPage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  // Removed unused router definition
+  const supabase = createClient();
 
   // --- State Management ---
   const [categories, setCategories] = useState<Category[]>([]);
