@@ -5,9 +5,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 // Helper function to create a secure, server-side client with admin privileges.
-// This is the modern and correct way to initialize the client for server actions.
-const createAdminClient = () => {
-    const cookieStore = cookies();
+const createAdminClient = async () => {
+    const cookieStore = await cookies();
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!, // This key grants admin rights
@@ -16,11 +15,13 @@ const createAdminClient = () => {
                 get(name: string) {
                     return cookieStore.get(name)?.value;
                 },
-                set(name: string, value: string, options: CookieOptions) {
-                    cookieStore.set(name, value, options);
+                set(name: string, value: string, options?: CookieOptions) {
+                    // Next.js cookies().set accepts a single object parameter
+                    cookieStore.set({ name, value, ...(options as any) });
                 },
-                remove(name: string, options: CookieOptions) {
-                    cookieStore.delete(name, options);
+                remove(name: string, options?: CookieOptions) {
+                    // cookies().delete accepts either a name or an options object; pass an object with the name
+                    cookieStore.delete({ name, ...(options as any) } as any);
                 },
             },
         }
@@ -28,15 +29,15 @@ const createAdminClient = () => {
 };
 
 /**
- * Updates an order's status to "Delivered".
+ * Updates an order's status.
  * This is a Server Action that can be called from a Client Component.
  * @param orderId The ID of the order to update.
  */
-export async function markOrderAsDeliveredAction(orderId: string) {
-    const supabase = createAdminClient();
+export async function updateOrderStatusAction(orderId: string, newStatus: string) {
+    const supabase = await createAdminClient();
     const { error } = await supabase
         .from("orders")
-        .update({ order_status: "Delivered" })
+        .update({ order_status: newStatus })
         .eq("id", orderId);
 
     if (error) {

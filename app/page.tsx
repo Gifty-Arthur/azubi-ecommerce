@@ -12,8 +12,7 @@ import { getAllProducts, Product } from "@/lib/productApi";
 
 const HomePage = async () => {
   // 3. Create a Supabase client for Server Components using our new helper
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = createClient();
 
   // 4. This line will now work because it calls the correct version of getAllProducts
   //    and passes the valid server client to it.

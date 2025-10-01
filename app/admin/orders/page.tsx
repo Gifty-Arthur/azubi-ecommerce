@@ -41,7 +41,7 @@ const EyeIcon = () => (
 );
 
 export default function OrdersPage() {
-  const supabase = createClient(undefined);
+  const supabase = createClient();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +130,31 @@ export default function OrdersPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {orders.map((order) => {
-                    const firstItemImage =
-                      order.order_items?.[0]?.products?.image_url;
+                    const products = order.order_items?.[0]?.products;
+                    const firstItemImage = Array.isArray(products)
+                      ? (products[0] as any)?.image_url
+                      : (products as any)?.image_url;
+
+                    // compute total from order_items: sum of (product price * quantity)
+                    const total =
+                      order.order_items?.reduce((sum, item) => {
+                        // product info might be an array or an object depending on your join shape
+                        const prod = Array.isArray(item.products)
+                          ? (item.products[0] as any)
+                          : (item.products as any);
+                        const price = (prod?.price as number) ?? 0;
+                        const quantity = (item?.quantity as number) ?? 1;
+                        return sum + price * quantity;
+                      }, 0) ?? 0;
+
+                    // normalize delivered flag from possible shapes without relying on Order type
+                    const delivered = Boolean(
+                      (order as any).is_delivered ??
+                        (order as any).delivered ??
+                        (order as any).delivered_at ??
+                        false
+                    );
+
                     return (
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -154,7 +177,7 @@ export default function OrdersPage() {
                           {new Date(order.created_at).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          ${order.total.toFixed(2)}
+                          ${total.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {order.is_paid ? (
@@ -165,12 +188,8 @@ export default function OrdersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <StatusBadge
-                            text={order.status}
-                            type={
-                              order.status === "Delivered"
-                                ? "success"
-                                : "pending"
-                            }
+                            text={delivered ? "Delivered" : "Pending"}
+                            type={delivered ? "success" : "pending"}
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">

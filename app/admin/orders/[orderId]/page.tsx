@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link"; // Import the Link component
-import { getOrderById } from "@/lib/supabase/AdminOrder";
+import * as AdminOrder from "@/lib/supabase/AdminOrder";
 
 // Helper function to format currency
 const formatCurrency = (amount: number) => {
@@ -21,15 +21,29 @@ export default async function OrderDetailsPage({
 }: {
   params: { orderId: string };
 }) {
-  const order = await getOrderById(params.orderId);
+  const getOrderFn =
+    (AdminOrder as any).getOrderById ??
+    (AdminOrder as any).getOrder ??
+    (AdminOrder as any).default;
+
+  if (!getOrderFn) {
+    throw new Error(
+      "No suitable getOrder function exported from @/lib/supabase/AdminOrder"
+    );
+  }
+
+  const order = await getOrderFn(params.orderId);
 
   if (!order) {
     notFound();
   }
 
-  const itemsSubtotal = order.order_items.reduce((acc, item) => {
-    return acc + item.price * item.quantity;
-  }, 0);
+  const itemsSubtotal = order.order_items.reduce(
+    (acc: number, item: { price: number; quantity: number }) => {
+      return acc + item.price * item.quantity;
+    },
+    0
+  );
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
@@ -62,29 +76,44 @@ export default async function OrderDetailsPage({
                 </thead>
                 {/* Table Body */}
                 <tbody>
-                  {order.order_items.map((item, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="py-4 pr-4">
-                        <Image
-                          src={item.products?.image_url || "/placeholder.png"}
-                          alt={item.products?.product_name || "Product Image"}
-                          width={64}
-                          height={64}
-                          className="rounded-md object-cover w-16 h-16"
-                        />
-                      </td>
-                      <td className="py-4 pr-4 font-medium text-gray-800">
-                        {item.products?.product_name || "Product Name Missing"}
-                      </td>
-                      <td className="py-4 pr-4 text-center">{item.quantity}</td>
-                      <td className="py-4 pr-4 text-right">
-                        {formatCurrency(item.price)}
-                      </td>
-                      <td className="py-4 pl-4 text-right font-semibold">
-                        {formatCurrency(item.price * item.quantity)}
-                      </td>
-                    </tr>
-                  ))}
+                  {order.order_items.map(
+                    (
+                      item: {
+                        products?: {
+                          image_url?: string;
+                          product_name?: string;
+                        };
+                        price: number;
+                        quantity: number;
+                      },
+                      index: number
+                    ) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-4 pr-4">
+                          <Image
+                            src={item.products?.image_url || "/placeholder.png"}
+                            alt={item.products?.product_name || "Product Image"}
+                            width={64}
+                            height={64}
+                            className="rounded-md object-cover w-16 h-16"
+                          />
+                        </td>
+                        <td className="py-4 pr-4 font-medium text-gray-800">
+                          {item.products?.product_name ||
+                            "Product Name Missing"}
+                        </td>
+                        <td className="py-4 pr-4 text-center">
+                          {item.quantity}
+                        </td>
+                        <td className="py-4 pr-4 text-right">
+                          {formatCurrency(item.price)}
+                        </td>
+                        <td className="py-4 pl-4 text-right font-semibold">
+                          {formatCurrency(item.price * item.quantity)}
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
